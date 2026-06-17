@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Library v.05 - مكتبة الاستعلامات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #475569;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #e2e8f0;
+            --bg-card: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border: #cbd5e1;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        /* Main Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        .stats-card {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .stats-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .tags-cloud {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .tags-cloud h3 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .tag-filter {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            margin: 0.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-filter:hover, .tag-filter.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* Search & Filters */
+        .search-section {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Cairo', sans-serif;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+        }
+
+        /* Query Cards */
+        .queries-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .query-card {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .query-card:hover {
+            box-shadow: var(--shadow);
+            border-color: var(--accent);
+        }
+
+        .query-header {
+            padding: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .query-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .query-meta {
+            display: flex;
+            gap: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .query-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .query-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .query-body {
+            padding: 1.25rem;
+        }
+
+        .code-block {
+            background: #1e1e2e;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            position: relative;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #cdd6f4;
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* SQL Syntax Highlighting */
+        .sql-keyword { color: #cba6f7; font-weight: bold; }
+        .sql-string { color: #a6e3a1; }
+        .sql-number { color: #fab387; }
+        .sql-comment { color: #6c7086; font-style: italic; }
+        .sql-function { color: #89b4fa; }
+        .sql-operator { color: #f38ba8; }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 0.35rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .code-block:hover .copy-btn {
+            opacity: 1;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .query-tags {
+            padding: 1rem 1.25rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            border-top: 1px solid var(--border);
+        }
+
+        .tag {
+            padding: 0.25rem 0.75rem;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Cairo', sans-serif;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .form-group textarea {
+            min-height: 150px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-upload:hover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--success);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 2000;
+            box-shadow: var(--shadow);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: static;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .sidebar {
+                grid-template-columns: 1fr;
+            }
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            .query-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .query-card {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Highlight search results */
+        .highlight {
+            background: rgba(245, 158, 11, 0.3);
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                </svg>
+                <span>SQL Query Library <small style="font-size:0.6em;opacity:0.7;">v.05</small></span>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleTheme()">
+                    🌓
+                </button>
+                <button class="btn btn-secondary" onclick="exportData()">
+                    📥 تصدير
+                </button>
+                <label class="btn btn-secondary" style="cursor: pointer;">
+                    📤 استيراد
+                    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(this)">
+                </label>
+                <button class="btn btn-secondary" onclick="fixCorruptedData()" title="إصلاح بيانات تالفة" style="background:#f59e0b;color:#000;font-weight:700;">
+                    🔧 إصلاح
+                </button>
+                <button class="btn btn-primary" onclick="openModal()">
+                    + استعلام جديد
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="stats-card">
+                <h3>📊 الإحصائيات</h3>
+                <div class="stat-item">
+                    <span>إجمالي الاستعلامات</span>
+                    <span class="stat-value" id="totalQueries">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>الأوسمة المختلفة</span>
+                    <span class="stat-value" id="totalTags">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>آخر تحديث</span>
+                    <span class="stat-value" id="lastUpdate">-</span>
+                </div>
+            </div>
+
+            <div class="tags-cloud">
+                <h3>🏷️ الأوسمة</h3>
+                <div id="tagsCloud"></div>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main>
+            <div class="search-section">
+                <div class="search-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="ابحث في الاسم، الكود، الوصف، الأوسمة..." oninput="searchQueries()">
+                </div>
+                <div class="filter-row">
+                    <select class="filter-select" id="sortBy" onchange="searchQueries()">
+                        <option value="newest">الأحدث أولاً</option>
+                        <option value="oldest">الأقدم أولاً</option>
+                        <option value="name">الاسم أبجدياً</option>
+                    </select>
+                    <button class="btn btn-secondary btn-sm" onclick="clearFilters()">مسح الفلاتر</button>
+                </div>
+            </div>
+
+            <div class="queries-grid" id="queriesContainer">
+                <!-- Queries will be rendered here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>➕ إضافة استعلام جديد</h2>
+                <button class="btn btn-secondary" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>الاسم / العنوان *</label>
+                    <input type="text" id="queryName" placeholder="مثال: استعلام المستخدمين النشطين">
+                </div>
+                <div class="form-group">
+                    <label>كود SQL *</label>
+                    <textarea id="queryCode" placeholder="SELECT * FROM users WHERE active = 1;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>الوصف (اختياري)</label>
+                    <input type="text" id="queryDesc" placeholder="وصف مختصر للاستعلام">
+                </div>
+                <div class="form-group">
+                    <label>الأوسمة (مفصولة بفاصلة)</label>
+                    <input type="text" id="queryTags" placeholder="SELECT, Users, Reports">
+                </div>
+                <div class="form-group">
+                    <label>أو رفع ملف SQL</label>
+                    <div class="file-upload" onclick="document.getElementById('sqlFile').click()">
+                        <input type="file" id="sqlFile" accept=".sql" onchange="handleFileUpload(this)">
+                        <div>📁 اضغط هنا أو اسحب ملف SQL</div>
+                        <small style="color: var(--text-secondary);">سيتم استخراج الاستعلامات تلقائياً</small>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; justify-content: end;">
+                    <button class="btn btn-secondary" onclick="closeModal()">إلغاء</button>
+                    <button class="btn btn-primary" onclick="saveQuery()">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">تم النسخ!</div>
+
+    <script>
+        // Data Management
+        let queries = JSON.parse(localStorage.getItem("sqlQueries")) || [];
+        let currentTagFilter = null;
+
+        // SQL Keywords for syntax highlighting
+        const sqlKeywords = [
+            'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
+            'ON', 'GROUP', 'BY', 'ORDER', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL', 'DISTINCT',
+            'CREATE', 'TABLE', 'DROP', 'ALTER', 'INDEX', 'VIEW', 'TRIGGER', 'PROCEDURE', 'FUNCTION',
+            'AND', 'OR', 'NOT', 'NULL', 'IS', 'IN', 'BETWEEN', 'LIKE', 'EXISTS', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+            'AS', 'ASC', 'DESC', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'COALESCE', 'IFNULL',
+            'BEGIN', 'COMMIT', 'ROLLBACK', 'TRANSACTION', 'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES',
+            'INT', 'VARCHAR', 'TEXT', 'DATE', 'DATETIME', 'BOOLEAN', 'INTEGER', 'FLOAT', 'DECIMAL'
+        ];
+
+        const sqlFunctions = [
+            'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'LENGTH', 'SUBSTRING', 'CONCAT', 'TRIM', 'UPPER', 'LOWER',
+            'ROUND', 'FLOOR', 'CEIL', 'ABS', 'NOW', 'DATE', 'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE',
+            'COALESCE', 'IFNULL', 'NULLIF', 'CAST', 'CONVERT'
+        ];
+
+        // Strip SQL highlighting HTML — handles malformed/partial tags (multi-pass)
+        function stripHTML(str) {
+            if (!str) return str;
+            let s = str;
+            let prev;
+            do {
+                prev = s;
+                s = s
+                    .replace(/<\/span>/gi, '')
+                    .replace(/<span[^>]*>/gi, '')
+                    .replace(/\bspan\s+class="[^"]*">/gi, '')
+                    .replace(/\bspan\s+class='[^']*'>/gi, '')
+                    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"');
+            } while (s !== prev);
+            return s;
+        }
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", () => {
+            // Clean ALL stored queries unconditionally using DOM-based stripHTML
+            queries = queries.map(q => ({ ...q, code: stripHTML(q.code) }));
+            saveToStorage();
+
+            renderQueries();
+            updateStats();
+            renderTags();
+
+            const savedTheme = localStorage.getItem("theme") || "dark";
+            document.documentElement.setAttribute("data-theme", savedTheme);
+        });
+
+        // Theme Toggle
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // Modal Functions
+        function openModal() {
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('queryName').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('queryName').value = '';
+            document.getElementById('queryCode').value = '';
+            document.getElementById('queryDesc').value = '';
+            document.getElementById('queryTags').value = '';
+        }
+
+        // Save Query
+        function saveQuery() {
+            const name = document.getElementById('queryName').value.trim();
+            const code = stripHTML(document.getElementById('queryCode').value.trim());
+            const desc = document.getElementById('queryDesc').value.trim();
+            const tags = document.getElementById('queryTags').value.split(',').map(t => t.trim()).filter(t => t);
+
+            if (!name || !code) {
+                showToast('⚠️ الاسم والكود مطلوبان!', 'warning');
+                return;
+            }
+
+            const query = {
+                id: Date.now(),
+                name,
+                code,
+                description: desc,
+                tags,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            queries.unshift(query);
+            saveToStorage();
+            renderQueries();
+            updateStats();
+            renderTags();
+            closeModal();
+            showToast('✅ تم الحفظ بنجاح!');
+        }
+
+        // File Upload Handler
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                const statements = parseSQLFile(content);
+                
+                let added = 0;
+                statements.forEach((stmt, index) => {
+                    if (stmt.trim().length > 10) {
+                        queries.unshift({
+                            id: Date.now() + index,
+                            name: `استعلام من ${file.name} #${index + 1}`,
+                            code: stmt.trim(),
+                            description: `مستخرج من ملف: ${file.name}`,
+                            tags: ['Imported', file.name.split('.')[0]],
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString()
+                        });
+                        added++;
+                    }
+                });
+
+                saveToStorage();
+                renderQueries();
+                updateStats();
+                renderTags();
+                showToast(`✅ تم استيراد ${added} استعلام!`);
+                closeModal();
+            };
+            reader.readAsText(file);
+        }
+
+        // Parse SQL File
+        function parseSQLFile(content) {
+            // Split by semicolon but handle delimiters
+            const lines = content.split('\n');
+            let statements = [];
+            let current = '';
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('--') || trimmed.startsWith('/*') || trimmed.startsWith('*')) continue;
+                
+                current += line + '\n';
+                if (trimmed.endsWith(';')) {
+                    statements.push(current);
+                    current = '';
+                }
+            }
+            
+            if (current.trim()) statements.push(current);
+            return statements;
+        }
+
+        // Syntax Highlighting
+        function highlightSQL(code) {
+            // Clean any previously highlighted HTML before re-highlighting
+            let clean = stripHTML(code);
+
+            let html = clean
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Comments
+            html = html.replace(/(--.*$)/gm, '<span class="sql-comment">$1</span>');
+            html = html.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="sql-comment">$1</span>');
+
+            // Strings
+            html = html.replace(/('(?:[^']|'')*')/g, '<span class="sql-string">$1</span>');
+            html = html.replace(/("(?:[^"]|"")*")/g, '<span class="sql-string">$1</span>');
+
+            // Numbers
+            html = html.replace(/\b(\d+\.?\d*)\b/g, '<span class="sql-number">$1</span>');
+
+            // Functions
+            sqlFunctions.forEach(func => {
+                const regex = new RegExp(`\\b(${func})\\s*\\(`, 'gi');
+                html = html.replace(regex, '<span class="sql-function">$1</span>(');
+            });
+
+            // Keywords
+            sqlKeywords.forEach(keyword => {
+                const regex = new RegExp(`\\b(${keyword})\\b`, 'gi');
+                html = html.replace(regex, '<span class="sql-keyword">$1</span>');
+            });
+
+            // Operators
+            html = html.replace(/(=|!=|<>|<=|>=||<|>|\+|-|\*|\/|%)/g, '<span class="sql-operator">$1</span>');
+
+            return html;
+        }
+
+        // Search & Filter
+        function searchQueries() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const sortBy = document.getElementById('sortBy').value;
+            
+            let filtered = queries.filter(q => {
+                if (currentTagFilter && !q.tags.includes(currentTagFilter)) return false;
+                
+                if (!searchTerm) return true;
+                
+                const searchFields = [
+                    q.name,
+                    q.code,
+                    q.description,
+                    q.tags.join(' ')
+                ].join(' ').toLowerCase();
+                
+                return searchFields.includes(searchTerm);
+            });
+
+            // Sorting
+            filtered.sort((a, b) => {
+                if (sortBy === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
+                if (sortBy === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+                if (sortBy === 'name') return a.name.localeCompare(b.name);
+                return 0;
+            });
+
+            renderQueries(filtered, searchTerm);
+        }
+
+        // Render Queries — uses DOM API so <pre> gets textContent (never innerHTML)
+        function renderQueries(data = queries, highlightTerm = '') {
+            const container = document.getElementById('queriesContainer');
+            container.innerHTML = '';
+
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <h3>لا توجد استعلامات</h3>
+                        <p>ابدأ بإضافة استعلام SQL جديد أو استيراد ملف</p>
+                    </div>`;
+                return;
+            }
+
+            data.forEach(q => {
+                // Always get clean plain text using multi-pass regex strip
+                const cleanCode = stripHTML(q.code || '');
+
+                // Build card via innerHTML (safe — cleanCode never goes in here)
+                const card = document.createElement('div');
+                card.className = 'query-card';
+
+                let displayName = q.name;
+                let displayDesc = q.description || '';
+                if (highlightTerm) {
+                    const rx = new RegExp(`(${highlightTerm})`, 'gi');
+                    displayName = displayName.replace(rx, '<span class="highlight">$1</span>');
+                    displayDesc = displayDesc.replace(rx, '<span class="highlight">$1</span>');
+                }
+
+                card.innerHTML = `
+                    <div class="query-header">
+                        <div class="query-info">
+                            <h3>${displayName}</h3>
+                            <div class="query-meta">
+                                <span>📅 ${formatDate(q.createdAt)}</span>
+                                <span>🕐 ${formatRelativeTime(q.createdAt)}</span>
+                            </div>
+                        </div>
+                        <div class="query-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="editQuery(${q.id})">✏️</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteQuery(${q.id})">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="query-body">
+                        ${displayDesc ? `<p style="margin-bottom:1rem;color:var(--text-secondary)">${displayDesc}</p>` : ''}
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyCode('${q.id}')">📋 نسخ</button>
+                            <pre></pre>
+                        </div>
+                    </div>
+                    ${q.tags.length > 0 ? `<div class="query-tags">${q.tags.map(t => `<span class="tag" onclick="filterByTag('${t}')">${t}</span>`).join('')}</div>` : ''}
+                `;
+
+                // *** KEY FIX: set highlighted HTML on pre via innerHTML AFTER cleanCode is safe ***
+                card.querySelector('pre').innerHTML = highlightSQL(cleanCode);
+
+                container.appendChild(card);
+            });
+        }
+
+        // Filter by Tag
+        function filterByTag(tag) {
+            currentTagFilter = currentTagFilter === tag ? null : tag;
+            renderTags();
+            searchQueries();
+        }
+
+        // Render Tags Cloud
+        function renderTags() {
+            const allTags = {};
+            queries.forEach(q => {
+                q.tags.forEach(t => {
+                    allTags[t] = (allTags[t] || 0) + 1;
+                });
+            });
+
+            const container = document.getElementById('tagsCloud');
+            const sortedTags = Object.entries(allTags).sort((a, b) => b[1] - a[1]);
+            
+            container.innerHTML = sortedTags.map(([tag, count]) => `
+                <span class="tag-filter ${currentTagFilter === tag ? 'active' : ''}" onclick="filterByTag('${tag}')">
+                    ${tag} (${count})
+                </span>
+            `).join('');
+        }
+
+        // Update Stats
+        function updateStats() {
+            document.getElementById('totalQueries').textContent = queries.length;
+            
+            const allTags = new Set();
+            queries.forEach(q => q.tags.forEach(t => allTags.add(t)));
+            document.getElementById('totalTags').textContent = allTags.size;
+            
+            if (queries.length > 0) {
+                const latest = new Date(Math.max(...queries.map(q => new Date(q.updatedAt))));
+                document.getElementById('lastUpdate').textContent = formatRelativeTime(latest);
+            }
+        }
+
+        // Copy Code
+        function copyCode(id) {
+            const query = queries.find(q => q.id == id);
+            if (query) {
+                navigator.clipboard.writeText(stripHTML(query.code)).then(() => {
+                    showToast('✅ تم النسخ!');
+                });
+            }
+        }
+
+        // Edit Query
+        function editQuery(id) {
+            const q = queries.find(q => q.id === id);
+            if (!q) return;
+
+            document.getElementById('queryName').value = q.name;
+            document.getElementById('queryCode').value = stripHTML(q.code);
+            document.getElementById('queryDesc').value = q.description || '';
+            document.getElementById('queryTags').value = q.tags.join(', ');
+            
+            // Change save to update
+            const saveBtn = document.querySelector('.modal-body .btn-primary');
+            saveBtn.onclick = () => updateQuery(id);
+            saveBtn.textContent = 'تحديث';
+            
+            openModal();
+        }
+
+        function updateQuery(id) {
+            const name = document.getElementById('queryName').value.trim();
+            const code = stripHTML(document.getElementById('queryCode').value.trim());
+            const desc = document.getElementById('queryDesc').value.trim();
+            const tags = document.getElementById('queryTags').value.split(',').map(t => t.trim()).filter(t => t);
+
+            if (!name || !code) {
+                showToast('⚠️ الاسم والكود مطلوبان!', 'warning');
+                return;
+            }
+
+            const idx = queries.findIndex(q => q.id === id);
+            if (idx !== -1) {
+                queries[idx] = {
+                    ...queries[idx],
+                    name,
+                    code,
+                    description: desc,
+                    tags,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                saveToStorage();
+                renderQueries();
+                updateStats();
+                renderTags();
+                closeModal();
+                
+                // Reset button
+                const saveBtn = document.querySelector('.modal-body .btn-primary');
+                saveBtn.onclick = saveQuery;
+                saveBtn.textContent = 'حفظ';
+                
+                showToast('✅ تم التحديث!');
+            }
+        }
+
+        // Delete Query
+        function deleteQuery(id) {
+            if (confirm('هل أنت متأكد من حذف هذا الاستعلام؟')) {
+                queries = queries.filter(q => q.id !== id);
+                saveToStorage();
+                renderQueries();
+                updateStats();
+                renderTags();
+                showToast('🗑️ تم الحذف');
+            }
+        }
+
+        // Clear Filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('sortBy').value = 'newest';
+            currentTagFilter = null;
+            renderTags();
+            searchQueries();
+        }
+
+        // Export/Import
+        function exportData() {
+            const data = JSON.stringify(queries, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sql-queries-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('📥 تم التصدير!');
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        queries = [...imported, ...queries];
+                        saveToStorage();
+                        renderQueries();
+                        updateStats();
+                        renderTags();
+                        showToast(`✅ تم استيراد ${imported.length} استعلام!`);
+                    }
+                } catch (err) {
+                    showToast('❌ ملف غير صالح!', 'danger');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Storage
+        function saveToStorage() {
+            localStorage.setItem('sqlQueries', JSON.stringify(queries));
+        }
+
+        // Force-clean all stored queries (removes any HTML tags from code field)
+        function fixCorruptedData() {
+            const before = queries.length;
+            queries = queries.map(q => ({ ...q, code: stripHTML(q.code) }));
+            saveToStorage();
+            renderQueries();
+            showToast('✅ تم إصلاح ' + before + ' استعلام!');
+        }
+
+        // Utilities
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('ar-SA', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function formatRelativeTime(date) {
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            if (seconds < 60) return 'الآن';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `منذ ${minutes} دقيقة`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `منذ ${hours} ساعة`;
+            const days = Math.floor(hours / 24);
+            if (days < 30) return `منذ ${days} يوم`;
+            return formatDate(date);
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = type === 'danger' ? 'var(--danger)' : 
+                                   type === 'warning' ? 'var(--warning)' : 'var(--success)';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Close modal on overlay click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            }
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                openModal();
+            }
+        });
+    </script>
+</body>
+</html>
+<!-- ضيف ده في الـ Modal body، قبل زر الحفظ -->
+<div class="form-group">
+    <label>🚀 استيراد بالجملة (Paste Mode)</label>
+    <textarea id="bulkImport" placeholder="الصق هنا كل جمل SQL بتاعتك...
+مثال:
+SELECT * FROM users;
+SELECT * FROM orders WHERE status = 'active';
+CREATE VIEW active_users AS SELECT * FROM users WHERE active = 1;
+GO
+-- ممكن تفصل بالـ ; أو GO أو سطر فاضي"></textarea>
+    <small style="color: var(--text-secondary);">البرنامج هيفصلهم ويحذف المكرر تلقائياً</small>
+</div>
+
+<div style="display: flex; gap: 0.5rem; justify-content: end; margin-top: 1rem;">
+    <button class="btn btn-secondary" onclick="previewBulkImport()">👁️ معاينة</button>
+    <button class="btn btn-primary" onclick="saveBulkImport()">📥 استيراد الكل</button>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal-overlay" id="previewModal" style="z-index: 1100;">
+    <div class="modal" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2>👁️ معاينة الاستيراد</h2>
+            <button class="btn btn-secondary" onclick="closePreview()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="stats-card" style="margin-bottom: 1rem;">
+                <div class="stat-item">
+                    <span>إجمالي الموجود</span>
+                    <span class="stat-value" id="previewTotal">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>جديد (غير مكرر)</span>
+                    <span class="stat-value" style="color: var(--success);" id="previewNew">0</span>
+                </div>
+                <div class="stat-item">
+                    <span>مكرر (هيتم تجاهله)</span>
+                    <span class="stat-value" style="color: var(--danger);" id="previewDup">0</span>
+                </div>
+            </div>
+            <div id="previewList" style="max-height: 400px; overflow-y: auto;"></div>
+            <div style="display: flex; gap: 0.5rem; justify-content: end; margin-top: 1rem;">
+                <button class="btn btn-secondary" onclick="closePreview()">إلغاء</button>
+                <button class="btn btn-primary" onclick="confirmBulkImport()">✅ تأكيد الاستيراد</button>
+            </div>
+        </div>
+    </div>
+</div>
