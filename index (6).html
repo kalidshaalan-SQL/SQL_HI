@@ -725,7 +725,7 @@
             'COALESCE', 'IFNULL', 'NULLIF', 'CAST', 'CONVERT'
         ];
 
-        // Strip SQL highlighting HTML — handles malformed/partial tags (multi-pass)
+        // Strip SQL highlighting HTML
         function stripHTML(str) {
             if (!str) return str;
             let s = str;
@@ -744,14 +744,11 @@
 
         // Initialize
         document.addEventListener("DOMContentLoaded", () => {
-            // Clean ALL stored queries unconditionally using DOM-based stripHTML
             queries = queries.map(q => ({ ...q, code: stripHTML(q.code) }));
             saveToStorage();
-
             renderQueries();
             updateStats();
             renderTags();
-
             const savedTheme = localStorage.getItem("theme") || "dark";
             document.documentElement.setAttribute("data-theme", savedTheme);
         });
@@ -847,7 +844,6 @@
 
         // Parse SQL File
         function parseSQLFile(content) {
-            // Split by semicolon but handle delimiters
             const lines = content.split('\n');
             let statements = [];
             let current = '';
@@ -869,7 +865,6 @@
 
         // Syntax Highlighting
         function highlightSQL(code) {
-            // Clean any previously highlighted HTML before re-highlighting
             let clean = stripHTML(code);
 
             let html = clean
@@ -901,7 +896,7 @@
             });
 
             // Operators
-            html = html.replace(/(=|!=|<>|<=|>=||<|>|\+|-|\*|\/|%)/g, '<span class="sql-operator">$1</span>');
+            html = html.replace(/(=|!=|<>|<=|>=|<|>|\+|-|\*|\/|%)/g, '<span class="sql-operator">$1</span>');
 
             return html;
         }
@@ -937,7 +932,7 @@
             renderQueries(filtered, searchTerm);
         }
 
-        // Render Queries — uses DOM API so <pre> gets textContent (never innerHTML)
+        // Render Queries
         function renderQueries(data = queries, highlightTerm = '') {
             const container = document.getElementById('queriesContainer');
             container.innerHTML = '';
@@ -955,10 +950,8 @@
             }
 
             data.forEach(q => {
-                // Always get clean plain text using multi-pass regex strip
                 const cleanCode = stripHTML(q.code || '');
 
-                // Build card via innerHTML (safe — cleanCode never goes in here)
                 const card = document.createElement('div');
                 card.className = 'query-card';
 
@@ -994,156 +987,134 @@
                     ${q.tags.length > 0 ? `<div class="query-tags">${q.tags.map(t => `<span class="tag" onclick="filterByTag('${t}')">${t}</span>`).join('')}</div>` : ''}
                 `;
 
-                // *** KEY FIX: set highlighted HTML on pre via innerHTML AFTER cleanCode is safe ***
-                card.querySelector('pre').innerHTML = highlightSQL(cleanCode);
+                const pre = card.querySelector('pre');
+                const highlightedHTML = highlightSQL(cleanCode);
+                pre.innerHTML = highlightedHTML;
 
                 container.appendChild(card);
             });
         }
 
-        // Filter by Tag
-        function filterByTag(tag) {
-            currentTagFilter = currentTagFilter === tag ? null : tag;
-            renderTags();
-            searchQueries();
+        // Helper Functions
+        function saveToStorage() {
+            localStorage.setItem("sqlQueries", JSON.stringify(queries));
         }
 
-        // Render Tags Cloud
-        function renderTags() {
-            const allTags = {};
-            queries.forEach(q => {
-                q.tags.forEach(t => {
-                    allTags[t] = (allTags[t] || 0) + 1;
-                });
-            });
-
-            const container = document.getElementById('tagsCloud');
-            const sortedTags = Object.entries(allTags).sort((a, b) => b[1] - a[1]);
-            
-            container.innerHTML = sortedTags.map(([tag, count]) => `
-                <span class="tag-filter ${currentTagFilter === tag ? 'active' : ''}" onclick="filterByTag('${tag}')">
-                    ${tag} (${count})
-                </span>
-            `).join('');
-        }
-
-        // Update Stats
         function updateStats() {
             document.getElementById('totalQueries').textContent = queries.length;
-            
-            const allTags = new Set();
-            queries.forEach(q => q.tags.forEach(t => allTags.add(t)));
-            document.getElementById('totalTags').textContent = allTags.size;
-            
+            const uniqueTags = new Set();
+            queries.forEach(q => q.tags.forEach(t => uniqueTags.add(t)));
+            document.getElementById('totalTags').textContent = uniqueTags.size;
             if (queries.length > 0) {
-                const latest = new Date(Math.max(...queries.map(q => new Date(q.updatedAt))));
-                document.getElementById('lastUpdate').textContent = formatRelativeTime(latest);
+                document.getElementById('lastUpdate').textContent = formatDate(queries[0].updatedAt);
             }
         }
 
-        // Copy Code
-        function copyCode(id) {
-            const query = queries.find(q => q.id == id);
-            if (query) {
-                navigator.clipboard.writeText(stripHTML(query.code)).then(() => {
-                    showToast('✅ تم النسخ!');
+        function renderTags() {
+            const tagFreq = {};
+            queries.forEach(q => {
+                q.tags.forEach(tag => {
+                    tagFreq[tag] = (tagFreq[tag] || 0) + 1;
                 });
-            }
+            });
+            
+            const tagsCloud = document.getElementById('tagsCloud');
+            tagsCloud.innerHTML = Object.entries(tagFreq)
+                .map(([tag, count]) => `<span class="tag-filter" onclick="filterByTag('${tag}')">${tag} (${count})</span>`)
+                .join('');
         }
 
-        // Edit Query
-        function editQuery(id) {
-            const q = queries.find(q => q.id === id);
-            if (!q) return;
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = type === 'warning' ? 'var(--warning)' : 'var(--success)';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
 
-            document.getElementById('queryName').value = q.name;
-            document.getElementById('queryCode').value = stripHTML(q.code);
-            document.getElementById('queryDesc').value = q.description || '';
-            document.getElementById('queryTags').value = q.tags.join(', ');
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleDateString('ar-EG');
+        }
+
+        function formatRelativeTime(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
             
-            // Change save to update
-            const saveBtn = document.querySelector('.modal-body .btn-primary');
-            saveBtn.onclick = () => updateQuery(id);
-            saveBtn.textContent = 'تحديث';
+            if (diffMins < 1) return 'للتو';
+            if (diffMins < 60) return `قبل ${diffMins} دقيقة`;
+            if (diffHours < 24) return `قبل ${diffHours} ساعة`;
+            return `قبل ${diffDays} يوم`;
+        }
+
+        function editQuery(id) {
+            const query = queries.find(q => q.id === id);
+            if (!query) return;
             
+            document.getElementById('queryName').value = query.name;
+            document.getElementById('queryCode').value = query.code;
+            document.getElementById('queryDesc').value = query.description;
+            document.getElementById('queryTags').value = query.tags.join(', ');
+            
+            deleteQuery(id);
             openModal();
         }
 
-        function updateQuery(id) {
-            const name = document.getElementById('queryName').value.trim();
-            const code = stripHTML(document.getElementById('queryCode').value.trim());
-            const desc = document.getElementById('queryDesc').value.trim();
-            const tags = document.getElementById('queryTags').value.split(',').map(t => t.trim()).filter(t => t);
-
-            if (!name || !code) {
-                showToast('⚠️ الاسم والكود مطلوبان!', 'warning');
-                return;
-            }
-
-            const idx = queries.findIndex(q => q.id === id);
-            if (idx !== -1) {
-                queries[idx] = {
-                    ...queries[idx],
-                    name,
-                    code,
-                    description: desc,
-                    tags,
-                    updatedAt: new Date().toISOString()
-                };
-                
-                saveToStorage();
-                renderQueries();
-                updateStats();
-                renderTags();
-                closeModal();
-                
-                // Reset button
-                const saveBtn = document.querySelector('.modal-body .btn-primary');
-                saveBtn.onclick = saveQuery;
-                saveBtn.textContent = 'حفظ';
-                
-                showToast('✅ تم التحديث!');
-            }
-        }
-
-        // Delete Query
         function deleteQuery(id) {
-            if (confirm('هل أنت متأكد من حذف هذا الاستعلام؟')) {
-                queries = queries.filter(q => q.id !== id);
-                saveToStorage();
-                renderQueries();
-                updateStats();
-                renderTags();
-                showToast('🗑️ تم الحذف');
-            }
+            queries = queries.filter(q => q.id !== id);
+            saveToStorage();
+            renderQueries();
+            updateStats();
+            renderTags();
+            showToast('✅ تم الحذف بنجاح!');
         }
 
-        // Clear Filters
-        function clearFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('sortBy').value = 'newest';
-            currentTagFilter = null;
-            renderTags();
+        function copyCode(id) {
+            const query = queries.find(q => q.id === id);
+            if (!query) return;
+            
+            navigator.clipboard.writeText(query.code).then(() => {
+                showToast('📋 تم النسخ!');
+            });
+        }
+
+        function filterByTag(tag) {
+            currentTagFilter = currentTagFilter === tag ? null : tag;
+            
+            document.querySelectorAll('.tag-filter').forEach(el => {
+                el.classList.toggle('active', el.textContent.includes(tag));
+            });
+            
             searchQueries();
         }
 
-        // Export/Import
+        function clearFilters() {
+            currentTagFilter = null;
+            document.getElementById('searchInput').value = '';
+            document.getElementById('sortBy').value = 'newest';
+            document.querySelectorAll('.tag-filter').forEach(el => el.classList.remove('active'));
+            renderQueries();
+        }
+
         function exportData() {
-            const data = JSON.stringify(queries, null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `sql-queries-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('📥 تم التصدير!');
+            const dataStr = JSON.stringify(queries, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `sql-queries-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            showToast('📥 تم التصدير بنجاح!');
         }
 
         function importData(input) {
             const file = input.files[0];
             if (!file) return;
-
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
@@ -1157,120 +1128,25 @@
                         showToast(`✅ تم استيراد ${imported.length} استعلام!`);
                     }
                 } catch (err) {
-                    showToast('❌ ملف غير صالح!', 'danger');
+                    showToast('❌ خطأ في استيراد الملف!', 'warning');
                 }
             };
             reader.readAsText(file);
         }
 
-        // Storage
-        function saveToStorage() {
-            localStorage.setItem('sqlQueries', JSON.stringify(queries));
-        }
-
-        // Force-clean all stored queries (removes any HTML tags from code field)
         function fixCorruptedData() {
-            const before = queries.length;
-            queries = queries.map(q => ({ ...q, code: stripHTML(q.code) }));
+            queries = queries.map(q => ({
+                ...q,
+                code: stripHTML(q.code || ''),
+                name: q.name || 'بدون عنوان',
+                tags: Array.isArray(q.tags) ? q.tags : []
+            }));
             saveToStorage();
             renderQueries();
-            showToast('✅ تم إصلاح ' + before + ' استعلام!');
+            updateStats();
+            renderTags();
+            showToast('✅ تم إصلاح البيانات!');
         }
-
-        // Utilities
-        function formatDate(date) {
-            return new Date(date).toLocaleDateString('ar-SA', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        function formatRelativeTime(date) {
-            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-            if (seconds < 60) return 'الآن';
-            const minutes = Math.floor(seconds / 60);
-            if (minutes < 60) return `منذ ${minutes} دقيقة`;
-            const hours = Math.floor(minutes / 60);
-            if (hours < 24) return `منذ ${hours} ساعة`;
-            const days = Math.floor(hours / 24);
-            if (days < 30) return `منذ ${days} يوم`;
-            return formatDate(date);
-        }
-
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.background = type === 'danger' ? 'var(--danger)' : 
-                                   type === 'warning' ? 'var(--warning)' : 'var(--success)';
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // Close modal on overlay click
-        document.getElementById('modal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) closeModal();
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('searchInput').focus();
-            }
-            if (e.ctrlKey && e.key === 'n') {
-                e.preventDefault();
-                openModal();
-            }
-        });
     </script>
 </body>
 </html>
-<!-- ضيف ده في الـ Modal body، قبل زر الحفظ -->
-<div class="form-group">
-    <label>🚀 استيراد بالجملة (Paste Mode)</label>
-    <textarea id="bulkImport" placeholder="الصق هنا كل جمل SQL بتاعتك...
-مثال:
-SELECT * FROM users;
-SELECT * FROM orders WHERE status = 'active';
-CREATE VIEW active_users AS SELECT * FROM users WHERE active = 1;
-GO
--- ممكن تفصل بالـ ; أو GO أو سطر فاضي"></textarea>
-    <small style="color: var(--text-secondary);">البرنامج هيفصلهم ويحذف المكرر تلقائياً</small>
-</div>
-
-<div style="display: flex; gap: 0.5rem; justify-content: end; margin-top: 1rem;">
-    <button class="btn btn-secondary" onclick="previewBulkImport()">👁️ معاينة</button>
-    <button class="btn btn-primary" onclick="saveBulkImport()">📥 استيراد الكل</button>
-</div>
-
-<!-- Preview Modal -->
-<div class="modal-overlay" id="previewModal" style="z-index: 1100;">
-    <div class="modal" style="max-width: 900px;">
-        <div class="modal-header">
-            <h2>👁️ معاينة الاستيراد</h2>
-            <button class="btn btn-secondary" onclick="closePreview()">✕</button>
-        </div>
-        <div class="modal-body">
-            <div class="stats-card" style="margin-bottom: 1rem;">
-                <div class="stat-item">
-                    <span>إجمالي الموجود</span>
-                    <span class="stat-value" id="previewTotal">0</span>
-                </div>
-                <div class="stat-item">
-                    <span>جديد (غير مكرر)</span>
-                    <span class="stat-value" style="color: var(--success);" id="previewNew">0</span>
-                </div>
-                <div class="stat-item">
-                    <span>مكرر (هيتم تجاهله)</span>
-                    <span class="stat-value" style="color: var(--danger);" id="previewDup">0</span>
-                </div>
-            </div>
-            <div id="previewList" style="max-height: 400px; overflow-y: auto;"></div>
-            <div style="display: flex; gap: 0.5rem; justify-content: end; margin-top: 1rem;">
-                <button class="btn btn-secondary" onclick="closePreview()">إلغاء</button>
-                <button class="btn btn-primary" onclick="confirmBulkImport()">✅ تأكيد الاستيراد</button>
-            </div>
-        </div>
-    </div>
-</div>
